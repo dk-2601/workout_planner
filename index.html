@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sam Fitness Studio – Workout Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --brand: #0a63c9;
+      --bg: #f9f9fb;
+      --card: #ffffff;
+      --text: #333;
+      --muted: #666;
+      --border: #e6e6ef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      color: var(--text);
+    }
+    /* Top brand bar */
+    .brandbar {
+      background: var(--brand);
+      color: #fff;
+      padding: 16px 20px;
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: .3px;
+      font-size: 18px;
+    }
+    .container {
+      max-width: 640px;
+      margin: 18px auto 40px;
+      padding: 0 16px;
+    }
+    .card {
+      background: var(--card);
+      padding: 18px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.06);
+      border: 1px solid var(--border);
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #111;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 10px 0 6px;
+      color: #444;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid #eee;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    th { background: #f1f4fa; font-weight: 700; }
+    .btn-row {
+      text-align: center;
+      margin-top: 8px;
+    }
+    button {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 6px 4px;
+      transition: transform .03s ease, opacity .2s ease;
+    }
+    button:active { transform: scale(.98); }
+    button.secondary { background: #0a7d45; }
+    .plan-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.04);
+    }
+    .plan-card h4 { margin: 0 0 6px; color: var(--brand); }
+    .muted { color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <!-- Brand header -->
+  <div class="brandbar">Sam Fitness Studio</div>
+
+  <div class="container">
+    <div class="card">
+      <h2>Workout Planner</h2>
+      <div class="muted">Create, save, and share structured workout plans.</div>
+    </div>
+
+    <!-- Client Info -->
+    <div class="card">
+      <label>Client Name</label>
+      <input type="text" id="clientName" placeholder="Enter client name" />
+      
+      <label>Age</label>
+      <input type="number" id="clientAge" min="1" max="120" placeholder="Enter age" />
+
+      <label>Start Date</label>
+      <input type="date" id="startDate" />
+
+      <label>End Date</label>
+      <input type="date" id="endDate" />
+    </div>
+
+    <!-- Day & Muscle Selection -->
+    <div class="card">
+      <label>Select Day</label>
+      <select id="daySelect">
+        <option value="Day 1">Day 1</option>
+        <option value="Day 2">Day 2</option>
+        <option value="Day 3">Day 3</option>
+        <option value="Day 4">Day 4</option>
+        <option value="Day 5">Day 5</option>
+        <option value="Day 6">Day 6</option>
+        <option value="Day 7">Day 7</option>
+      </select>
+
+      <label>Muscle Group</label>
+      <select id="muscleGroup" onchange="showExercises()">
+        <option value="">-- Select --</option>
+        <option value="Chest">Chest</option>
+        <option value="Back">Back</option>
+        <option value="Biceps">Biceps</option>
+        <option value="Triceps">Triceps</option>
+        <option value="Legs">Legs</option>
+        <option value="Shoulders">Shoulders</option>
+        <option value="Functional">Functional</option>
+        <option value="Rest">Rest Day</option>
+      </select>
+
+      <div id="exerciseTable"></div>
+      <div class="btn-row">
+        <button onclick="addToPlan()">➕ Add to Plan</button>
+      </div>
+    </div>
+
+    <!-- Draft Plan -->
+    <div class="card">
+      <h2>Plan (Draft)</h2>
+      <div id="planList"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="btn-row">
+      <button onclick="generatePDF('download')">⬇️ Download PDF</button>
+      <button class="secondary" onclick="generatePDF('share')">📤 Share PDF</button>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+    // ----- Data -----
+    const exerciseOptions = {
+      "Chest": ["Bench Press", "Incline Press", "Dumbbell Fly"],
+      "Back": ["Pull Ups", "Lat Pulldown", "Deadlift"],
+      "Biceps": ["Barbell Curl", "Hammer Curl", "Concentration Curl"],
+      "Triceps": ["Close Grip Bench", "Skull Crusher", "Tricep Dips"],
+      "Legs": ["Squats", "Lunges", "Leg Press"],
+      "Shoulders": ["Overhead Press", "Lateral Raises", "Arnold Press"],
+      "Functional": ["Burpees", "Plank", "Mountain Climbers"]
+    };
+
+    // Structure: { "Day 1": { "Chest": [{name, sets, reps}, ...], "Back": [...] }, ... }
+    let workoutPlan = {};
+
+    // ----- UI Builders -----
+    function showExercises() {
+      const group = document.getElementById("muscleGroup").value;
+      const container = document.getElementById("exerciseTable");
+      container.innerHTML = "";
+      if (!group || group === "Rest") return;
+
+      let html = `<table>
+        <tr><th>Exercise</th><th>Sets</th><th>Reps</th></tr>`;
+      exerciseOptions[group].forEach(ex => {
+        html += `<tr>
+          <td>${ex}</td>
+          <td><input type="number" id="sets_${ex}" style="width:70px" min="1"></td>
+          <td><input type="number" id="reps_${ex}" style="width:70px" min="1"></td>
+        </tr>`;
+      });
+      html += `</table>`;
+      container.innerHTML = html;
+    }
+
+    function addToPlan() {
+      const day = document.getElementById("daySelect").value;
+      const group = document.getElementById("muscleGroup").value;
+      if (!day || !group) return;
+
+      workoutPlan[day] = workoutPlan[day] || {};
+
+      if (group === "Rest") {
+        workoutPlan[day]["Rest"] = []; // mark as rest
+      } else {
+        const items = exerciseOptions[group]
+          .map(ex => ({
+            name: ex,
+            sets: (document.getElementById(`sets_${ex}`)?.value || "").trim(),
+            reps: (document.getElementById(`reps_${ex}`)?.value || "").trim()
+          }))
+          .filter(x => x.sets && x.reps);
+
+        if (items.length) {
+          workoutPlan[day][group] = items;
+        }
+      }
+      renderDraft();
+    }
+
+    function renderDraft() {
+      const wrap = document.getElementById("planList");
+      wrap.innerHTML = "";
+
+      Object.keys(workoutPlan).forEach(day => {
+        const card = document.createElement("div");
+        card.className = "plan-card";
+        card.innerHTML = `<h4>${day}</h4>`;
+
+        const groups = workoutPlan[day];
+        if (Object.keys(groups).length === 0) {
+          card.innerHTML += `<div class="muted">No entries yet.</div>`;
+        }
+
+        Object.keys(groups).forEach(g => {
+          if (g === "Rest") {
+            card.innerHTML += `<b>${g}</b><br><span class="muted">Rest Day</span><br>`;
+          } else {
+            card.innerHTML += `<b>${g}</b><br>`;
+            groups[g].forEach(ex => {
+              card.innerHTML += `${ex.name}: ${ex.sets} sets × ${ex.reps} reps<br>`;
+            });
+          }
+        });
+        wrap.appendChild(card);
+      });
+    }
+
+    // ----- PDF Generation -----
+    function getTableStyle() {
+      return {
+        theme: "grid",
+        styles: {
+          fontSize: 11,
+          cellPadding: 4,
+          lineColor: [220, 220, 230],
+          lineWidth: 0.4,
+          valign: "middle"
+        },
+        headStyles: {
+          fillColor: [10, 99, 201],
+          textColor: 255,
+          fontStyle: "bold"
+        },
+        columnStyles: {
+          group: { cellWidth: 45 },         // fixed width for alignment
+          exercise: { cellWidth: 125 }      // remaining width
+        },
+        margin: { left: 20, right: 20 }
+      };
+    }
+
+    async function generatePDF(action) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+      const name = (document.getElementById("clientName").value || "").trim() || "Client";
+      const age  = (document.getElementById("clientAge").value || "").trim() || "-";
+      const sDate = document.getElementById("startDate").value || "-";
+      const eDate = document.getElementById("endDate").value || "-";
+
+      // Header
+      doc.setFontSize(18);
+      doc.text("Sam Fitness Studio", 105, 15, { align: "center" });
+      doc.setFontSize(13);
+      doc.text("Workout Plan", 105, 22, { align: "center" });
+
+      // Info tables: Name|Age and Start|End (consistent style)
+      doc.autoTable({
+        startY: 30,
+        head: [["Name", "Age"]],
+        body: [[name, age]],
+        ...getTableStyle(),
+        columnStyles: { 0: { cellWidth: 95 }, 1: { cellWidth: 95 } } // equal halves
+      });
+      doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 4,
+        head: [["Start Date", "End Date"]],
+        body: [[sDate, eDate]],
+        ...getTableStyle(),
+        columnStyles: { 0: { cellWidth: 95 }, 1: { cellWidth: 95 } }
+      });
+
+      let y = doc.lastAutoTable.finalY + 10;
+
+      // Build one UNIFIED table per day for consistent layout
+      Object.keys(workoutPlan).forEach(day => {
+        // Day title
+        if (y > 275) { doc.addPage(); y = 20; }
+        doc.setFontSize(14);
+        doc.text(day, 20, y);
+        y += 4;
+
+        // Collect rows for this day
+        const rows = [];
+        const groups = workoutPlan[day] || {};
+
+        if (Object.keys(groups).length === 0) {
+          rows.push({ group: "—", exercise: "No entries" });
+        } else {
+          Object.keys(groups).forEach(g => {
+            if (g === "Rest") {
+              rows.push({ group: "Rest Day", exercise: "—" });
+            } else {
+              groups[g].forEach(ex => {
+                rows.push({
+                  group: g,
+                  exercise: `${ex.name}: ${ex.sets} sets × ${ex.reps} reps`
+                });
+              });
+            }
+          });
+        }
+
+        // Day table with consistent config
+        doc.autoTable({
+          startY: y + 2,
+          columns: [
+            { header: "Muscle Group", dataKey: "group" },
+            { header: "Exercise", dataKey: "exercise" }
+          ],
+          body: rows,
+          ...getTableStyle()
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      });
+
+      const fileName = `${name.replace(/\s+/g, "_")}_WorkoutPlan.pdf`;
+
+      if (action === "download") {
+        doc.save(fileName);
+      } else if (action === "share") {
+        const pdfBlob = doc.output("blob");
+        const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "Workout Plan",
+              text: "Workout plan from Sam Fitness Studio",
+              files: [file]
+            });
+          } catch (e) {
+            // fallback to download if user cancels or unsupported
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement("a");
+            a.href = url; a.download = fileName;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+          }
+        } else {
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = url; a.download = fileName;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
