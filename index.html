@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sam Fitness Studio – Workout Planner</title>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a63c9" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -396,5 +399,16 @@
       }
     }
   </script>
+
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(reg => console.log("✅ Service Worker registered:", reg))
+        .catch(err => console.log("❌ Service Worker error:", err));
+    });
+  }
+</script>
+
 </body>
 </html>
