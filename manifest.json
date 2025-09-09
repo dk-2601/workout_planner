@@ -1,6 +1,6 @@
 {
   "name": "Sam Fitness Studio – Workout Planner",
-  "short_name": "Workout Planner",
+  "short_name": "Sam Fitness Studio",
   "description": "Create, save, and share structured workout plans.",
   "start_url": "./index.html",
   "display": "standalone",
